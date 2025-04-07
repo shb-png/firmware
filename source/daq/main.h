@@ -9,11 +9,11 @@
 // Pinouts
 // LEDs
 #define HEARTBEAT_LED_PORT   GPIOD
-#define HEARTBEAT_LED_PIN    13
+#define HEARTBEAT_LED_PIN    2
 #define CONNECTION_LED_PORT  GPIOD
-#define CONNECTION_LED_PIN   14
+#define CONNECTION_LED_PIN   3
 #define ERROR_LED_PORT       GPIOD
-#define ERROR_LED_PIN        15
+#define ERROR_LED_PIN        4
 
 // SD Card SDIO
 #define SD_ACTIVITY_LED_PORT GPIOA
