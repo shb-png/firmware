@@ -162,6 +162,7 @@ extern void HardFault_Handler(void);
 void parseIMU(void);
 void pollIMU(void);
 void VCU_MAIN(void);
+void VCU_MAIN_TESTING(void);
 void txUsart(void);
 
 static int16_t gyro_counter = 0; /* Number of steps that gyro has not been checked */
@@ -174,7 +175,7 @@ static yVCU_struct yVCU;
 
 
 int main(void)
-{
+ {
     /* Data Struct Initialization */
 
     /* HAL Initialization */
@@ -403,9 +404,20 @@ void usart_recieve_complete_callback(usart_init_t *handle)
         fVCU.VCU_PFLAG = rxmsg.VCU_PFLAG;
         fVCU.VCU_CFLAG = rxmsg.VCU_CFLAG;
 
-        // on recieving data, run one step of VCU_MAIN, then transmit data
-        VCU_MAIN();
-        // txUsart();
+        // yVCU buffers
+        memcpy(yVCU.PT_permit_buffer, rxmsg.PT_permit_buffer, sizeof(yVCU.PT_permit_buffer));
+        memcpy(yVCU.VS_permit_buffer, rxmsg.VS_permit_buffer, sizeof(yVCU.PT_permit_buffer));
+        memcpy(yVCU.VT_permit_buffer, rxmsg.VT_permit_buffer, sizeof(yVCU.PT_permit_buffer));
+        yVCU.VCU_mode = rxmsg.VCU_mode;
+        memcpy(yVCU.IB_CF_buffer, rxmsg.IB_CF_buffer, sizeof(yVCU.IB_CF_buffer));
+        yVCU.zero_current_counter = rxmsg.zero_current_counter;
+        yVCU.TC_highs = rxmsg.TC_highs;
+        yVCU.TC_lows = rxmsg.TC_lows;
+        yVCU.VT_mode = rxmsg.VT_mode;
+
+
+        // on recieving data, run one step of VCU_MAIN, which then transmit data
+        VCU_MAIN_TESTING();
     }
     else 
     {
@@ -420,22 +432,16 @@ void txUsart() {
     memcpy(txmsg.PT_permit_buffer, yVCU.PT_permit_buffer, sizeof(txmsg.PT_permit_buffer));
     memcpy(txmsg.VS_permit_buffer, yVCU.VS_permit_buffer, sizeof(txmsg.VS_permit_buffer));
     memcpy(txmsg.VT_permit_buffer, yVCU.VT_permit_buffer, sizeof(txmsg.VT_permit_buffer));
-    memcpy(txmsg.IB_CF_buffer, yVCU.IB_CF_buffer, sizeof(txmsg.IB_CF_buffer));
-    memcpy(txmsg.WT_CF, yVCU.WT_CF, sizeof(txmsg.WT_CF));
-    memcpy(txmsg.WM_CF, yVCU.WM_CF, sizeof(txmsg.WM_CF));
-    memcpy(txmsg.AV_CF, yVCU.AV_CF, sizeof(txmsg.AV_CF));
-    memcpy(txmsg.AG_CF, yVCU.AG_CF, sizeof(txmsg.AG_CF));
-    memcpy(txmsg.TO_CF, yVCU.TO_CF, sizeof(txmsg.TO_CF));
-    memcpy(txmsg.TO_ET, yVCU.TO_ET, sizeof(txmsg.TO_ET));
-    memcpy(txmsg.TO_PT, yVCU.TO_PT, sizeof(txmsg.TO_PT));
-    memcpy(txmsg.WM_VS, yVCU.WM_VS, sizeof(txmsg.WM_VS));
-    memcpy(txmsg.TO_VT, yVCU.TO_VT, sizeof(txmsg.TO_VT));
-
     txmsg.VCU_mode = yVCU.VCU_mode;
+    memcpy(txmsg.IB_CF_buffer, yVCU.IB_CF_buffer, sizeof(txmsg.IB_CF_buffer));
     txmsg.TH_CF = yVCU.TH_CF;
     txmsg.ST_CF = yVCU.ST_CF;
     txmsg.VB_CF = yVCU.VB_CF;
+    memcpy(txmsg.WT_CF, yVCU.WT_CF, sizeof(txmsg.WT_CF));
+    memcpy(txmsg.WM_CF, yVCU.WM_CF, sizeof(txmsg.WM_CF));
+    memcpy(txmsg.W_CF, yVCU.W_CF, sizeof(txmsg.W_CF));
     txmsg.GS_CF = yVCU.GS_CF;
+    memcpy(txmsg.AV_CF, yVCU.AV_CF, sizeof(txmsg.AV_CF));
     txmsg.IB_CF = yVCU.IB_CF;
     txmsg.MT_CF = yVCU.MT_CF;
     txmsg.CT_CF = yVCU.CT_CF;
@@ -443,6 +449,8 @@ void txUsart() {
     txmsg.MC_CF = yVCU.MC_CF;
     txmsg.IC_CF = yVCU.IC_CF;
     txmsg.BT_CF = yVCU.BT_CF;
+    memcpy(txmsg.AG_CF, yVCU.AG_CF, sizeof(txmsg.AG_CF));
+    memcpy(txmsg.TO_CF, yVCU.TO_CF, sizeof(txmsg.TO_CF));
     txmsg.VT_DB_CF = yVCU.VT_DB_CF;
     txmsg.TV_PP_CF = yVCU.TV_PP_CF;
     txmsg.TC_TR_CF = yVCU.TC_TR_CF;
@@ -450,14 +458,20 @@ void txUsart() {
     txmsg.zero_current_counter = yVCU.zero_current_counter;
     txmsg.Batt_SOC = yVCU.Batt_SOC;
     txmsg.Batt_Voc = yVCU.Batt_Voc;
+    memcpy(txmsg.WM_CS, yVCU.WM_CF, sizeof(txmsg.WM_CS));
+    memcpy(txmsg.TO_ET, yVCU.TO_ET, sizeof(txmsg.TO_ET));
     txmsg.TO_AB_MX = yVCU.TO_AB_MX;
     txmsg.TO_DR_MX = yVCU.TO_DR_MX;
+    memcpy(txmsg.TO_PT, yVCU.TO_PT, sizeof(txmsg.TO_PT));
     txmsg.VT_mode = yVCU.VT_mode;
+    memcpy(txmsg.TO_VT, yVCU.TO_VT, sizeof(txmsg.TO_VT));
     txmsg.TV_AV_ref = yVCU.TV_AV_ref;
     txmsg.TV_delta_torque = yVCU.TV_delta_torque;
     txmsg.TC_highs = yVCU.TC_highs;
     txmsg.TC_lows = yVCU.TC_lows;
     txmsg.SR = yVCU.SR;
+    memcpy(txmsg.WM_VS, yVCU.WM_VS, sizeof(txmsg.WM_VS));
+    txmsg.SR_VS = yVCU.SR_VS;
 
 
     /* You shouldn't need to mess with any of this */
@@ -471,7 +485,7 @@ void txUsart() {
 
     //     PHAL_usartTxBl(&usb, txbuffer + i, chunk_size);
     // }
-    PHAL_usartTxDma(&usb, (uint16_t *) txbuffer, 290);
+    PHAL_usartTxDma(&usb, (uint16_t *) txbuffer, 308+2);
 }
 
 /* CAN Message Handling */
@@ -484,6 +498,30 @@ void VCU_MAIN(void)
 {
     /* Fill in X & F */
     vcu_pp(&fVCU, &xVCU, &GPSHandle);
+
+    /* Step VCU */
+    vcu_step(&pVCU, &fVCU, &xVCU, &yVCU);
+
+    /* Set VCU faults */
+    setFault(ID_ES_ENABLED_FAULT,(yVCU.VCU_mode==0));
+    setFault(ID_ET_ENABLED_FAULT,(yVCU.VCU_mode==1));
+    setFault(ID_PT_ENABLED_FAULT,(yVCU.VCU_mode==2));
+    setFault(ID_VT_ENABLED_FAULT,(yVCU.VCU_mode==3));
+    setFault(ID_VS_ENABLED_FAULT,(yVCU.VCU_mode==4));
+    setFault(ID_NO_GPS_FIX_FAULT,(fVCU.GS_FFLAG < 3));
+    setFault(ID_YES_GPS_FIX_FAULT,(fVCU.GS_FFLAG == 3));
+
+    /* Send VCU messages */
+    SEND_VCU_TORQUES_SPEEDS((int16_t)(100*yVCU.TO_VT[0]), (int16_t)(100*yVCU.TO_VT[1]), (int16_t)(100*yVCU.TO_PT[0]), (int16_t)(yVCU.WM_VS[0]));
+    SEND_VCU_SOC_ESTIMATE((int16_t)(100*yVCU.Batt_SOC), (int16_t)(10*yVCU.Batt_Voc));
+    SEND_DRIVE_MODES((int8_t)(yVCU.VCU_mode), (int8_t)(yVCU.VT_mode));
+
+}
+
+void VCU_MAIN_TESTING(void)
+{
+    /* Fill in X & F */
+    // vcu_pp(&fVCU, &xVCU, &GPSHandle);
 
     /* Step VCU */
     vcu_step(&pVCU, &fVCU, &xVCU, &yVCU);

@@ -171,6 +171,12 @@ struct __attribute__((packed)) serial_rx {
     float PT_permit_buffer[5]; // size is given py pVCU.PT_permit_N
     float VS_permit_buffer[5]; // size is given py pVCU.VS_permit_N
     float VT_permit_buffer[5]; // size is given py pVCU.VT_permit_N
+    float VCU_mode;
+    float IB_CF_buffer[10]; // size is given by pVCU.CF_IB_filter_N
+    float zero_current_counter;
+    float TC_highs;
+    float TC_lows;
+    float VT_mode;
 };
 
 #endif

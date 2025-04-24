@@ -8,19 +8,18 @@ import numpy as np
 import csv
 
 # EDIT THIS TO MATCH serial_rx in main.h on TV
-SEND_STRUCT_FORMAT = "fff2f2ff3ffffffff3f2ffffffffffffffffffff5f5f5f"
+SEND_STRUCT_FORMAT = "fff2f2ff3ffffffff3f2ffffffffffffffffffff5f5f5ff10fffff"
 
 # EDIT THIS TO MATCH serial_tx in main.h on TV
-RECEIVE_STRUCT_FORMAT = "<5f5f5ff10ffff2f2ff3ffffffff3f2ffffff2fff2f2ff2ffffffff"
+RECEIVE_STRUCT_FORMAT = "<5f5f5ff10ffff2f2f2ff3ffffffff3f2ffffffff2f2fff2ff2ffffff2ff" #"<5f5f5ff10ffff2f2ff3ffffffff3f2ffffff2fff2f2ff2ffffffff"
 
-NUM_VALUES = 57
+NUM_VALUES_SENT = 57
 HEADER1 = b"\xaa\x55"
 HEADER2 = b"\x55\xaa"
 BUFFER_SIZE = struct.calcsize(RECEIVE_STRUCT_FORMAT)
 
 CSV_HEADER1 = ["yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU", "yVCU"]
 CSV_HEADER2 = ["PT_permit_buffer", "PT_permit_buffer", "PT_permit_buffer", "PT_permit_buffer", "PT_permit_buffer", "VS_permit_buffer", "VS_permit_buffer", "VS_permit_buffer", "VS_permit_buffer", "VS_permit_buffer", "VT_permit_buffer", "VT_permit_buffer", "VT_permit_buffer", "VT_permit_buffer", "VT_permit_buffer", "VCU_mode", "IB_CF_buffer", "IB_CF_buffer", "IB_CF_buffer", "IB_CF_buffer", "IB_CF_buffer", "IB_CF_buffer", "IB_CF_buffer", "IB_CF_buffer", "IB_CF_buffer", "IB_CF_buffer", "TH_CF", "ST_CF", "VB_CF", "WT_CF", "WT_CF", "WM_CF", "WM_CF", "W_CF", "W_CF", "GS_CF", "AV_CF", "AV_CF", "AV_CF", "IB_CF", "MT_CF", "CT_CF", "IT_CF", "MC_CF", "IC_CF", "BT_CF", "AG_CF", "AG_CF", "AG_CF", "TO_CF", "TO_CF", "VT_DB_CF", "TV_PP_CF", "TC_TR_CF", "VS_MAX_SR_CF", "zero_current_counter", "Batt_SOC", "Batt_Voc", "WM_CS", "WM_CS", "TO_ET", "TO_ET", "TO_AB_MX", "TO_DR_MX", "TO_PT", "TO_PT", "VT_mode", "TO_VT", "TO_VT", "TV_AV_ref", "TV_delta_torque", "TC_highs", "TC_lows", "SR", "WM_VS", "WM_VS", "SR_VS"]
-
 def list_serial_ports():
     ports = list(serial.tools.list_ports.comports())
     if not ports:
@@ -66,7 +65,7 @@ def send_serial_struct(port, baudrate=115200):
         writer = csv.writer(csvfile)
         writer.writerow(CSV_HEADER1)
         writer.writerow(CSV_HEADER2)
-        for i in range(10):
+        for i in range(len(data_list)):
             print(f"\n=== Sample {i+1} of {num_samples} ===")
             # format and send data
             sample = data_list[i]
