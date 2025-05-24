@@ -10,7 +10,6 @@
  */
 
 #include "bmi088.h"
-#include "bsxlite_interface.h"
 #include "common/phal/spi.h"
 #include "common_defs.h"
 #include "main.h"
