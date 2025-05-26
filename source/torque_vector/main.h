@@ -17,9 +17,7 @@
 #include "common/faults/fault_nodes.h"
 #include "common/phal/can.h"
 
-#include "bsxlite_interface.h"
 #include "bmi088.h"
-#include "imu.h"
 #include "gps.h"
 #include "vcu.h"
 
