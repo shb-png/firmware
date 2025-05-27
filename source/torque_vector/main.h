@@ -17,7 +17,6 @@
 #include "common/faults/fault_nodes.h"
 #include "common/phal/can.h"
 
-#include "bmi088.h"
 #include "gps.h"
 #include "vcu.h"
 

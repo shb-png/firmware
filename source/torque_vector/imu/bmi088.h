@@ -108,6 +108,7 @@ typedef struct
 
     bool gyro_dynamic_range;
     bool accel_ready;
+    bool isGyroOK;
 } BMI088_Handle_t;
 
 /**
@@ -119,7 +120,7 @@ typedef struct
  */
 bool BMI088_init(BMI088_Handle_t *bmi);
 
-void BMI088_powerOnAccel(BMI088_Handle_t *bmi);
+void BMI088_wakeAccel(BMI088_Handle_t *bmi);
 
 /**
  * @brief Setup the accelerometer, must be done 50ms or longer after POR
