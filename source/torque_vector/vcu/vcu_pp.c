@@ -46,8 +46,8 @@ void vcu_pp(fVCU_struct *fVCU, xVCU_struct *xVCU, GPS_Handle_t *GPS)
     xVCU->VB_RAW = (can_data.orion_currents_volts.pack_voltage*0.1); /* Incoming is 10*V of terminal*/
     xVCU->WT_RAW[0] = 0;
     xVCU->WT_RAW[1] = 0;
-    xVCU->WM_RAW[0] = (can_data.INVA_CRIT.AMK_ActualSpeed*M_PI/30); /*Incoming is RPM of motor shaft */
-    xVCU->WM_RAW[1] = (can_data.INVB_CRIT.AMK_ActualSpeed*M_PI/30); /*Incoming is RPM of motor shaft */
+    xVCU->WM_RAW[0] = (can_data.INVA_CRIT.AMK_ActualSpeed* 3.14 /30); /*Incoming is RPM of motor shaft */
+    xVCU->WM_RAW[1] = (can_data.INVB_CRIT.AMK_ActualSpeed* 3.14 /30); /*Incoming is RPM of motor shaft */
     xVCU->GS_RAW = (GPS->g_speed*0.001); /* Incoming data is 1000*m/s */
     xVCU->AV_RAW[0] = (GPS->gyroscope.x);  /* Incoming data is rad/s */
     xVCU->AV_RAW[1] = (GPS->gyroscope.y);  /* Incoming data is rad/s */
