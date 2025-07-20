@@ -38,29 +38,26 @@ OUT_DIR = CWD/"output"
 # Setup cli arguments
 parser = OptionParser()
 
-parser.add_option("-t", "--target", 
-    dest="targets",
+parser.add_option("-t", "--target",
     type="string",
-    action="store",
-    help="comma seperated list of firmware targets to build. Defaults to `all`"
+    help="Space-separated list of boards targets to build"
+)
+
+parser.add_option("-l", "--list",
+    action="store_true", default=False,
+    help="List boards targets available to build"
 )
 
 parser.add_option("-c", "--clean",
     dest="clean",
     action="store_true", default=False,
-    help="remove build artifacts"
+    help="Remove build artifacts"
 )
 
 parser.add_option("--release",
     dest="release",
     action="store_true", default=False,
-    help="build for release (optimized)"
-)
-
-parser.add_option("--no-test", 
-    dest="no_test",
-    action="store_true", default=False,
-    help="don't run unit tests"
+    help="Build for release (optimized)"
 )
 
 parser.add_option("-b", "--bootloader",
@@ -81,18 +78,42 @@ parser.add_option("-p", "--package",
     help="package build output into tarball with CRCs, suffixed by Git hash"
 )
 
-(options, args) = parser.parse_args()
+def print_available_targets():
+    modules = [
+        "main_module",
+        "bootloader",
+        "l4_testing",
+        "f4_testing",
+        "f7_testing",
+        "g4_testing",
+        "a_box",
+        "torque_vector",
+        "dashboard",
+        "pdu",
+        "daq"
+    ]
+    modules_sorted = sorted(modules)
+    print("Available targets to build:")
+    for m in modules_sorted:
+        print(f'\t{m}')
 
+(options, args) = parser.parse_args()
+if options.list:
+    # User ran `-t` with no argument: print available targets
+    print_available_targets()
+    exit(0)
 
 BUILD_TYPE = "Release" if options.release else "Debug"
 VERBOSE = "--verbose" if options.verbose else ""
-RUN_TESTS = not options.no_test # TODO: This
 
-# Auto-append .elf to each target unless already present
-if options.targets:
-    TARGETS = [t if t.endswith(".elf") else f"{t}.elf" for t in options.targets.split(",")]
+# Prepare MODULES string for CMake
+if options.target:
+    target_list = options.target.split()
+    cmake_modules_str = ";".join(target_list)
+    ninja_targets = [t + ".elf" for t in target_list]
 else:
-    TARGETS = ["all"]
+    cmake_modules_str = ""
+    ninja_targets = ["all"]
 
 # Always clean if we specify
 if options.clean or options.package:
@@ -100,19 +121,18 @@ if options.clean or options.package:
     print("Build and output directories clean.")
 
 # Build the target if specified or we did not clean
-if options.targets or not options.clean:
+if options.target or not options.clean:
     CMAKE_OPTIONS = [
         "-S", str(SOURCE_DIR),
         "-B", str(BUILD_DIR),
         "-G", "Ninja",
         f"-DCMAKE_BUILD_TYPE={BUILD_TYPE}",
         f"-DBOOTLOADER_BUILD={'ON' if options.bootloader else 'OFF'}",
+        f"-DMODULES={cmake_modules_str}",
     ]
 
-    NINJA_OPTIONS = [
-        "-C", str(BUILD_DIR),
-    ] + TARGETS
-    NINJA_COMMAND = ["ninja"] + NINJA_OPTIONS 
+    NINJA_OPTIONS = ["-C", str(BUILD_DIR)] + ninja_targets
+    NINJA_COMMAND = ["ninja"] + NINJA_OPTIONS
 
     try:
         subprocess.run(["cmake"] + CMAKE_OPTIONS, check=True)
@@ -134,7 +154,7 @@ if options.targets or not options.clean:
     else:
         log_success("Sucessfully built targets.")
 
-# --package logic
+# package logic
 def get_git_hash_or_tag():
     try:
         # Check if current commit has a tag
@@ -148,7 +168,6 @@ def get_git_hash_or_tag():
         return subprocess.check_output(
             ["git", "rev-parse", "--short", "HEAD"]
         ).strip().decode()
-
 
 def add_crc_to_files():
     OUT_DIR.mkdir(parents=True, exist_ok=True)
