@@ -358,8 +358,7 @@ void PHAL_FDCAN_RX_IRQHandler(FDCAN_GlobalTypeDef* fdcan) {
 }
 
 void PHAL_FDCAN_TX_IRQHandler(FDCAN_GlobalTypeDef* fdcan) {
-    uint32_t ir = fdcan->IR;
-    if (ir & FDCAN_IR_TC) {
+    if (fdcan->IR & FDCAN_IR_TC) {
         fdcan->IR = FDCAN_IR_TC;
         PHAL_FDCAN_txCallback(fdcan);
     }
@@ -387,4 +386,12 @@ void FDCAN3_IT0_IRQHandler(void) {
 
 void FDCAN1_IT1_IRQHandler(void) {
     PHAL_FDCAN_TX_IRQHandler(FDCAN1);
+}
+
+void FDCAN2_IT2_IRQHandler(void) {
+    PHAL_FDCAN_TX_IRQHandler(FDCAN2);
+}
+
+void FDCAN3_IT2_IRQHandler(void) {
+    PHAL_FDCAN_TX_IRQHandler(FDCAN3);
 }
