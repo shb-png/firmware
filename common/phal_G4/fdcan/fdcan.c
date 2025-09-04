@@ -12,6 +12,7 @@
 #include "common/phal_G4/fdcan/fdcan.h"
 
 #include "common/phal_G4/fdcan/fdcan_priv.h"
+#include "stm32g474xx.h"
 
 static uint32_t PHAL_FDCAN_get_ram_base(FDCAN_GlobalTypeDef* fdcan) {
     uint32_t base = (uint32_t)SRAMCAN_BASE;
@@ -184,8 +185,14 @@ bool PHAL_FDCAN_init(FDCAN_GlobalTypeDef* fdcan, bool test_mode, uint32_t bit_ra
     fdcan->IE |= FDCAN_IE_RF0NE // New message
         | FDCAN_IE_RF0FE // FIFO full (optional)
         | FDCAN_IE_RF0LE; // Message lost (optional)
-    fdcan->ILS = 0; // Route to interrupt line 0
-    fdcan->ILE = FDCAN_ILE_EINT0; // Enable line 0
+    
+    // Enable TX TC interrupt
+    fdcan->IE |= FDCAN_IE_TCE;
+
+    fdcan->ILS = 0; // Route all to interrupt line 0
+    fdcan->ILS |= FDCAN_ILS_SMSG; // Route TX to interrupt line 1
+
+    fdcan->ILE = FDCAN_ILE_EINT0 | FDCAN_ILE_EINT1; // Enable line 0 & 1
 
     // Mode
     fdcan->CCCR &= ~(FDCAN_CCCR_MON | FDCAN_CCCR_TEST | FDCAN_CCCR_ASM);
@@ -350,8 +357,20 @@ void PHAL_FDCAN_RX_IRQHandler(FDCAN_GlobalTypeDef* fdcan) {
     }
 }
 
+void PHAL_FDCAN_TX_IRQHandler(FDCAN_GlobalTypeDef* fdcan) {
+    uint32_t ir = fdcan->IR;
+    if (ir & FDCAN_IR_TC) {
+        fdcan->IR = FDCAN_IR_TC;
+        PHAL_FDCAN_txCallback(fdcan);
+    }
+}
+
 void __attribute__((weak)) PHAL_FDCAN_rxCallback(CanMsgTypeDef_t* msg) {
     (void)msg;
+}
+
+void __attribute__((weak)) PHAL_FDCAN_txCallback(FDCAN_GlobalTypeDef* fdcan) {
+    (void)fdcan;
 }
 
 void FDCAN1_IT0_IRQHandler(void) {
@@ -364,4 +383,8 @@ void FDCAN2_IT0_IRQHandler(void) {
 
 void FDCAN3_IT0_IRQHandler(void) {
     PHAL_FDCAN_RX_IRQHandler(FDCAN3);
+}
+
+void FDCAN1_IT1_IRQHandler(void) {
+    PHAL_FDCAN_TX_IRQHandler(FDCAN1);
 }
