@@ -265,7 +265,8 @@
                         {"msg_name": "orion_currents_volts"},
                         {"msg_name": "VCU_torques_speeds"},
                         {"msg_name": "drive_modes"},
-                        {"msg_name": "orion_info"}
+                        {"msg_name": "orion_info"},
+                        {"msg_name": "driveline_adc_readings"}
                     ]
                 },
                 {
@@ -876,7 +877,8 @@
                         {"msg_name": "INVA_TEMPS"},
                         {"msg_name": "INVB_TEMPS"},
                         {"msg_name": "INVA_CRIT"},
-                        {"msg_name": "INVB_CRIT"}
+                        {"msg_name": "INVB_CRIT"},
+                        {"msg_name": "driveline_adc_readings"}
                     ]
                 },
                 {
