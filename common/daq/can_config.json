@@ -1518,8 +1518,65 @@
                     "rx":[
                         {"msg_name": "bitstream_flash_status"}
                     ]
+                },
+                {
+                    "node_name": "Driveline",
+                    "can_peripheral": "CAN1",
+                    "node_ssa": 43,
+                    "tx": [
+                        {
+                            "msg_name": "driveline_adc_readings",
+                            "msg_desc": "Packed ADC readings from driveline retrofit board",
+                            "signals": [
+                                {
+                                "sig_name": "reading_1",
+                                    "unit": "raw",
+                                    "scale": 1,
+                                    "type": "uint8_t",
+                                    "length": 10
+                                },
+                                {
+                                "sig_name": "reading_2",
+                                    "unit": "raw",
+                                    "scale": 1,
+                                    "type": "uint8_t",
+                                    "length": 10
+                                },
+                                {
+                                "sig_name": "reading_3",
+                                    "unit": "raw",
+                                    "scale": 1,
+                                    "type": "uint8_t",
+                                    "length": 10
+                                },
+                                {
+                                "sig_name": "reading_4",
+                                    "unit": "raw",
+                                    "scale": 1,
+                                    "type": "uint8_t",
+                                    "length": 10
+                                },
+                                {
+                                "sig_name": "reading_5",
+                                    "unit": "raw",
+                                    "scale": 1,
+                                    "type": "uint8_t",
+                                    "length": 10
+                                },
+                                {
+                                "sig_name": "reading_6",
+                                    "unit": "raw",
+                                    "scale": 1,
+                                    "type": "uint8_t",
+                                    "length": 10
+                                }
+                            ],
+                            "msg_id_override": "0x18FF50E5",
+                            "msg_period": 15
+                        }
+                    ],
+                    "rx": []
                 }
-
             ]
         },
         {
