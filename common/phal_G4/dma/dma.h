@@ -52,7 +52,6 @@ typedef struct {
     uint8_t priority;
     uint8_t periph_size;
     bool tx_isr_en;
-    uint8_t dma_chan_request;
     uint8_t channel_idx;
     uint8_t mux_request;
 
