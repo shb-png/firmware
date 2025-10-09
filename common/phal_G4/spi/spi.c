@@ -1,4 +1,5 @@
 #include "common/phal_G4/spi/spi.h"
+
 #include "stm32g474xx.h"
 
 extern uint32_t APB2ClockRateHz;
@@ -21,13 +22,21 @@ bool PHAL_SPI_init(SPI_InitConfig_t* cfg) {
         return false;
     }
 
-    // Setup for Master, positive polarity
-    cfg->periph->CR1 |= SPI_CR1_MSTR | SPI_CR1_SPE | SPI_CR1_SSM | SPI_CR1_SSI;
-    cfg->periph->CR1 &= ~(SPI_CR1_CPOL);
-    cfg->periph->CR2 &= ~(SPI_CR2_SSOE);
+    cfg->periph->CR1 = 0;
+    cfg->periph->CR2 = 0;
 
-    if (cfg->data_len != 8 && cfg->data_len != 16)
+    // Setup for Master, positive polarity
+    if (cfg->master) {
+        cfg->periph->CR1 |= SPI_CR1_MSTR | SPI_CR1_SSM | SPI_CR1_SSI;
+    } else {
+        cfg->periph->CR1 &= ~SPI_CR1_MSTR; // Slave mode
+        cfg->periph->CR1 &= ~SPI_CR1_SSI; // Use hardware NSS input
+        cfg->periph->CR1 &= ~SPI_CR1_SSM;
+    }
+
+    if (cfg->data_len != 8 && cfg->data_len != 16) {
         return false;
+    }
 
     // Set data frame size for SPI transaction to 8/16 bits depending on user configuration
     cfg->periph->CR2 &= ~(SPI_CR2_DS);
@@ -40,16 +49,17 @@ bool PHAL_SPI_init(SPI_InitConfig_t* cfg) {
 
     // Data Rate
     // Divisor is a power of 2, find the closest power of 2 limited to log2(256)
-    uint32_t f_div = 0;
-    if (cfg->periph == SPI1)
-        f_div = LOG2_DOWN(APB2ClockRateHz / cfg->data_rate) - 1;
-    // Both SPI2 and SPI3 are on APB1
-    else
-        f_div = LOG2_DOWN(APB1ClockRateHz / cfg->data_rate) - 1;
+    if (cfg->master) {
+        uint32_t f_div;
+        if (cfg->periph == SPI1)
+            f_div = LOG2_DOWN(APB2ClockRateHz / cfg->data_rate) - 1;
+        else
+            f_div = LOG2_DOWN(APB1ClockRateHz / cfg->data_rate) - 1;
 
-    f_div = CLAMP(f_div, 0, 0b111);
-    cfg->periph->CR1 &= ~SPI_CR1_BR_Msk;
-    cfg->periph->CR1 |= f_div << SPI_CR1_BR_Pos;
+        f_div = CLAMP(f_div, 0, 0b111);
+        cfg->periph->CR1 &= ~SPI_CR1_BR_Msk;
+        cfg->periph->CR1 |= f_div << SPI_CR1_BR_Pos;
+    }
 
     // Setup DMA Streams if required
     if (cfg->rx_dma_cfg && !PHAL_initDMA(cfg->rx_dma_cfg))
@@ -61,7 +71,7 @@ bool PHAL_SPI_init(SPI_InitConfig_t* cfg) {
     // Ensure device CS is disabled
     PHAL_writeGPIO(cfg->nss_gpio_port, cfg->nss_gpio_pin, 1);
 
-    cfg->_busy = false;
+    cfg->_busy  = false;
     cfg->_error = false;
 
     return true;
@@ -71,7 +81,7 @@ bool PHAL_SPI_transfer_noDMA(SPI_InitConfig_t* spi, const uint8_t* out_data, uin
     if (PHAL_SPI_busy(spi))
         return false;
 
-    spi->_busy = true;
+    spi->_busy  = true;
     spi->_error = false;
 
     // Enable SPI
@@ -83,22 +93,27 @@ bool PHAL_SPI_transfer_noDMA(SPI_InitConfig_t* spi, const uint8_t* out_data, uin
 
     // --- TX phase ---
     for (uint32_t i = 0; i < txlen; i++) {
-        while (!(spi->periph->SR & SPI_SR_TXE));   // wait for TX empty
+        while (!(spi->periph->SR & SPI_SR_TXE))
+            ; // wait for TX empty
         spi->periph->DR = out_data[i];
-        while (!(spi->periph->SR & SPI_SR_RXNE));  // wait for RX complete
-        (void)spi->periph->DR;                     // throw away received byte
+        while (!(spi->periph->SR & SPI_SR_RXNE))
+            ; // wait for RX complete
+        (void)spi->periph->DR; // throw away received byte
     }
 
     // --- RX phase ---
     for (uint32_t i = 0; i < rxlen; i++) {
-        while (!(spi->periph->SR & SPI_SR_TXE));
-        spi->periph->DR = 0xFF;                    // dummy write
-        while (!(spi->periph->SR & SPI_SR_RXNE));
+        while (!(spi->periph->SR & SPI_SR_TXE))
+            ;
+        spi->periph->DR = 0xFF; // dummy write
+        while (!(spi->periph->SR & SPI_SR_RXNE))
+            ;
         in_data[i] = (uint8_t)spi->periph->DR;
     }
 
     // Wait until not busy
-    while (spi->periph->SR & SPI_SR_BSY);
+    while (spi->periph->SR & SPI_SR_BSY)
+        ;
 
     // Disable SPI
     spi->periph->CR1 &= ~SPI_CR1_SPE;
@@ -139,6 +154,7 @@ bool PHAL_SPI_transfer(SPI_InitConfig_t* spi, const uint8_t* out_data, const uin
         spi->tx_dma_cfg->channel->CCR &= ~DMA_CCR_MINC;
         PHAL_DMA_setMemAddress(spi->tx_dma_cfg, (uint32_t)&zero);
     } else {
+        spi->tx_dma_cfg->channel->CCR |= DMA_CCR_MINC;
         PHAL_DMA_setMemAddress(spi->tx_dma_cfg, (uint32_t)out_data);
     }
     PHAL_DMA_setTxferLength(spi->tx_dma_cfg, data_len);
@@ -151,6 +167,7 @@ bool PHAL_SPI_transfer(SPI_InitConfig_t* spi, const uint8_t* out_data, const uin
             spi->rx_dma_cfg->channel->CCR &= ~DMA_CCR_MINC;
             PHAL_DMA_setMemAddress(spi->rx_dma_cfg, (uint32_t)&trash_can);
         } else {
+            spi->rx_dma_cfg->channel->CCR |= DMA_CCR_MINC;
             PHAL_DMA_setMemAddress(spi->rx_dma_cfg, (uint32_t)in_data);
         }
         PHAL_DMA_setTxferLength(spi->rx_dma_cfg, data_len);
@@ -159,9 +176,10 @@ bool PHAL_SPI_transfer(SPI_InitConfig_t* spi, const uint8_t* out_data, const uin
         PHAL_reEnable(spi->rx_dma_cfg);
     }
 
-    // Enable the DMA IRQ - copy + paste enabling selected SPI peripheral's TX DMA Stream ISR
     if (spi->periph == SPI1) {
         NVIC_EnableIRQ(DMA2_Channel3_IRQn);
+    } else if (spi->periph == SPI2) {
+        NVIC_EnableIRQ(DMA1_Channel4_IRQn);
     }
 
     // Start transaction
@@ -195,7 +213,7 @@ void PHAL_SPI_ForceReset(SPI_InitConfig_t* spi) {
 }
 
 static void handleTxComplete() {
-    uint32_t chan = active_transfer->tx_dma_cfg->channel_idx + 1; // DMA channels are 1-based
+    uint32_t chan = active_transfer->tx_dma_cfg->channel_idx; // DMA channels are 1-based
     uint32_t tcif = DMA_ISR_TCIF1 << (4 * (chan - 1));
     uint32_t teif = DMA_ISR_TEIF1 << (4 * (chan - 1));
 
@@ -203,14 +221,14 @@ static void handleTxComplete() {
 
     // Transfer error?
     if (dma->ISR & teif) {
-        dma->IFCR = teif;
+        dma->IFCR               = teif;
         active_transfer->_error = true;
     }
 
     // Transfer complete?
     if (dma->ISR & tcif) {
-        while (!(active_transfer->periph->SR & SPI_SR_TXE) ||
-               (active_transfer->periph->SR & SPI_SR_BSY));
+        while (!(active_transfer->periph->SR & SPI_SR_TXE) || (active_transfer->periph->SR & SPI_SR_BSY))
+            ;
 
         // CS high
         if (active_transfer->nss_sw)
@@ -227,16 +245,19 @@ static void handleTxComplete() {
         active_transfer->periph->CR1 &= ~SPI_CR1_SPE;
 
         // Clear busy/error state
-        active_transfer->_busy = false;
+        active_transfer->_busy  = false;
         active_transfer->_error = false;
 
-        dma->IFCR = tcif;
+        dma->IFCR       = tcif;
         active_transfer = NULL;
     }
 }
 
-//DMA TX ISR - copy + paste for selected SPI peripheral's DMA ISR
-void DMA2_Channel3_IRQHandler() {
+void DMA2_Channel3_IRQHandler(void) {
+    handleTxComplete();
+}
+
+void DMA1_Channel4_IRQHandler(void) {
     handleTxComplete();
 }
 
